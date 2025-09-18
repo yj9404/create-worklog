@@ -1,0 +1,33 @@
+name: Confluence Worklog Auto Creator
+
+on:
+  schedule:
+    - cron: "0 0 * * *" # UTC 0시 = 한국시간 09시
+  workflow_dispatch: # 수동 실행 가능
+
+jobs:
+  run-script:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install dependencies
+        run: pip install requests
+
+      - name: Run script
+        env:
+          ATLASSIAN_USER: ${{ secrets.ATLASSIAN_USER }}
+          ATLASSIAN_API_TOKEN: ${{ secrets.ATLASSIAN_API_TOKEN }}
+          BASE_URL: ${{ secrets.BASE_URL }}
+          BASE_URL_V1: ${{ secrets.BASE_URL_V1 }}
+          SPACE_ID: ${{ secrets.SPACE_ID }}
+          TEMPLATE_ID: ${{ secrets.TEMPLATE_ID }}
+          ROOT_FOLDER_ID: ${{ secrets.ROOT_FOLDER_ID }}
+        run: |
+          python create-worklog.py

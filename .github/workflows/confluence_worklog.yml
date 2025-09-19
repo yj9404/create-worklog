@@ -2,7 +2,7 @@ name: Confluence Worklog Auto Creator
 
 on:
   schedule:
-    - cron: "0 0 * * *" # UTC 0시 = 한국시간 09시
+    - cron: "30 0 * * *" # UTC 0시 = 한국시간 09시
   workflow_dispatch: # 수동 실행 가능
 
 jobs:

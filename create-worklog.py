@@ -63,7 +63,7 @@ def create_page(title, parent_id, body):
     }
 
     r = requests.post(url, auth=AUTH, json=data)
-    if r.status_code == 409:  # 이미 존재
+    if r.status_code == 400:  # 이미 존재
         print(f"[SKIP] Page already exists: {title}")
         return None
     r.raise_for_status()

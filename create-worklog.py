@@ -91,14 +91,14 @@ if __name__ == "__main__":
     month_folder_name = f"{today.year}_{today.strftime('%m')}"
     month_folder_id = find_or_create_folder(month_folder_name, year_folder_id)
 
-    # 1. 매년 12/28 → 내년 폴더 생성
-    if today.month == 12 and today.day == 28:
+    # 1. 매년 12/28 이후 → 내년 폴더 생성
+    if today.month == 12 and today.day >= 28:
         next_year_folder_name = f"{today.year + 1}_워크로그"
         find_or_create_folder(next_year_folder_name, ROOT_FOLDER_ID)
         print(f"[TASK] Next year folder checked: {next_year_folder_name}")
 
-    # 2. 매월 28일 → 다음 달 폴더 생성
-    if today.day == 28:
+    # 2. 매월 28일 이후 → 다음 달 폴더 생성
+    if today.day >= 28:
         next_month = today.month % 12 + 1
         next_year = today.year + (1 if next_month == 1 else 0)
         next_month_folder_name = f"{next_year}_{str(next_month).zfill(2)}"
@@ -106,9 +106,9 @@ if __name__ == "__main__":
         find_or_create_folder(next_month_folder_name, next_year_folder_id)
         print(f"[TASK] Next month folder checked: {next_month_folder_name}")
 
-    # 3. 매주 화요일 → 목요일 워크로그 생성
-    if today.weekday() == 1:  # 화요일 → 목요일 워크로그 생성
-        thursday = today + timedelta(days=2)
+    # 3. 매주 화, 수, 목 → 목요일 워크로그 생성
+    if today.weekday() in [1, 2, 3]:
+        thursday = today + timedelta(days=(3 - today.weekday()))
         page_title = f"{thursday.strftime('%m_%d')}_워크로그"
         formatted_date = thursday.strftime("%Y-%m-%d")  # 예: 2025년 9월 11일
 

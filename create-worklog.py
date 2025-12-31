@@ -112,13 +112,20 @@ if __name__ == "__main__":
         page_title = f"{thursday.strftime('%m_%d')}_워크로그"
         formatted_date = thursday.strftime("%Y-%m-%d")  # 예: 2025년 9월 11일
 
+        # 목요일 날짜에 해당하는 연도/월 폴더 찾기 또는 생성
+        thursday_year_folder_name = f"{thursday.year}_워크로그"
+        thursday_year_folder_id = find_or_create_folder(thursday_year_folder_name, ROOT_FOLDER_ID)
+        
+        thursday_month_folder_name = f"{thursday.year}_{thursday.strftime('%m')}"
+        thursday_month_folder_id = find_or_create_folder(thursday_month_folder_name, thursday_year_folder_id)
+        
         # 템플릿 본문 불러오기
         body = get_template_body()
 
         # 날짜 치환 (기존 템플릿에 박혀있는 "2025년 8월 7일" → 새 날짜)
         updated_body = body.replace("2025-08-07", formatted_date)
 
-        # 페이지 생성
-        page_id = create_page(page_title, month_folder_id, updated_body)
+        # 페이지 생성 (목요일 날짜에 해당하는 월 폴더에 생성)
+        page_id = create_page(page_title, thursday_month_folder_id, updated_body)
 
         print(f"Created and updated page: {page_title} ({formatted_date}) id={page_id}")

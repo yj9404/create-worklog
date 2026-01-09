@@ -79,8 +79,7 @@ def get_template_body():
     data = r.json()
     return data["body"]["storage"]["value"]
 
-if __name__ == "__main__":
-    today = datetime.today()
+def main(today):
     print(f"===== Confluence Automation Start: {today.strftime('%Y-%m-%d (%A)')} =====")
 
     # 메인 연도 폴더 (올해)
@@ -115,10 +114,10 @@ if __name__ == "__main__":
         # 목요일 날짜에 해당하는 연도/월 폴더 찾기 또는 생성
         thursday_year_folder_name = f"{thursday.year}_워크로그"
         thursday_year_folder_id = find_or_create_folder(thursday_year_folder_name, ROOT_FOLDER_ID)
-        
+
         thursday_month_folder_name = f"{thursday.year}_{thursday.strftime('%m')}"
         thursday_month_folder_id = find_or_create_folder(thursday_month_folder_name, thursday_year_folder_id)
-        
+
         # 템플릿 본문 불러오기
         body = get_template_body()
 
@@ -129,3 +128,7 @@ if __name__ == "__main__":
         page_id = create_page(page_title, thursday_month_folder_id, updated_body)
 
         print(f"Created and updated page: {page_title} ({formatted_date}) id={page_id}")
+
+
+if __name__ == "__main__":
+    main(datetime.today())

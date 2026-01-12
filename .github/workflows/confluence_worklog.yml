@@ -34,4 +34,4 @@ jobs:
           TEMPLATE_ID: ${{ secrets.TEMPLATE_ID }}
           ROOT_FOLDER_ID: ${{ secrets.ROOT_FOLDER_ID }}
         run: |
-          python create-worklog.py
+          python create_worklog.py

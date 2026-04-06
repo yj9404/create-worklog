@@ -13,6 +13,19 @@ os.environ["ATLASSIAN_USER"] = "test@example.com"
 os.environ["ATLASSIAN_API_TOKEN"] = "test_token"
 
 # requests가 import되기 전에 환경 변수가 설정되었는지 확인하기 위해 여기서 import합니다.
+from unittest.mock import MagicMock
+import sys
+
+class MockRequestsException(Exception):
+    pass
+
+class MockHTTPError(MockRequestsException):
+    pass
+
+mock_requests = MagicMock()
+mock_requests.exceptions.HTTPError = MockHTTPError
+sys.modules['requests'] = mock_requests
+
 import create_worklog
 import requests
 
@@ -38,7 +51,8 @@ class TestCreateWorklog(unittest.TestCase):
         mock_get.assert_called_once_with(
             "https://test.atlassian.net/wiki/rest/api/folders/parent_id?include-direct-children=true",
             auth=("test@example.com", "test_token"),
-            headers={"Accept": "application/json"}
+            headers={"Accept": "application/json"},
+            timeout=10
         )
 
     @patch('create_worklog.requests.get')
@@ -76,7 +90,12 @@ class TestCreateWorklog(unittest.TestCase):
         folder_id = create_worklog.find_or_create_folder("new_folder", "parent")
         self.assertEqual(folder_id, "new_folder_id")
         mock_get_folder.assert_called_once_with("new_folder", "parent")
-        mock_post.assert_called_once()
+        mock_post.assert_called_once_with(
+            "https://test.atlassian.net/wiki/rest/api/folders",
+            auth=("test@example.com", "test_token"),
+            json={"spaceId": "12345", "title": "new_folder", "parentId": "parent"},
+            timeout=10
+        )
 
     @patch('create_worklog.get_folder_id_by_name', return_value=None)
     @patch('create_worklog.requests.post')
@@ -99,6 +118,23 @@ class TestCreateWorklog(unittest.TestCase):
 
         page_id = create_worklog.create_page("test_page", "parent", "body")
         self.assertEqual(page_id, "new_page_id")
+        mock_post.assert_called_once_with(
+            "https://test.atlassian.net/wiki/rest/api/pages",
+            auth=("test@example.com", "test_token"),
+            json={
+                "spaceId": "12345",
+                "title": "test_page",
+                "parentId": "parent",
+                "status": "current",
+                "position": 0,
+                "body": {
+                    "representation": "storage",
+                    "value": "body"
+                },
+                "subtype": "live"
+            },
+            timeout=10
+        )
 
     @patch('create_worklog.requests.post')
     def test_create_page_already_exists(self, mock_post):
@@ -121,7 +157,8 @@ class TestCreateWorklog(unittest.TestCase):
         mock_get.assert_called_once_with(
             "https://test.atlassian.net/wiki/rest/api/v1/template/67890",
             auth=("test@example.com", "test_token"),
-            headers={"Accept": "application/json"}
+            headers={"Accept": "application/json"},
+            timeout=10
         )
 
     @patch('create_worklog.create_page')

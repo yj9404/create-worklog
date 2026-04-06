@@ -12,11 +12,24 @@ os.environ["ROOT_FOLDER_ID"] = "111213"
 os.environ["ATLASSIAN_USER"] = "test@example.com"
 os.environ["ATLASSIAN_API_TOKEN"] = "test_token"
 
+import sys
+from unittest.mock import MagicMock
+
+# Mock requests before importing create_worklog
+mock_requests = MagicMock()
+# Add a mock HTTPError to the mock_requests
+class MockHTTPError(Exception):
+    pass
+mock_requests.exceptions.HTTPError = MockHTTPError
+sys.modules["requests"] = mock_requests
+
 # requests가 import되기 전에 환경 변수가 설정되었는지 확인하기 위해 여기서 import합니다.
 import create_worklog
-import requests
 
 class TestCreateWorklog(unittest.TestCase):
+    def setUp(self):
+        # Clear cache before each test
+        create_worklog._FOLDER_CACHE = {}
 
     @patch('create_worklog.requests.get')
     def test_get_folder_id_by_name_found(self, mock_get):
@@ -84,10 +97,10 @@ class TestCreateWorklog(unittest.TestCase):
         # 실패한 API 응답을 모의 처리합니다.
         mock_response = Mock()
         mock_response.status_code = 500
-        mock_response.raise_for_status.side_effect = requests.exceptions.HTTPError
+        mock_response.raise_for_status.side_effect = mock_requests.exceptions.HTTPError
         mock_post.return_value = mock_response
 
-        with self.assertRaises(requests.exceptions.HTTPError):
+        with self.assertRaises(mock_requests.exceptions.HTTPError):
             create_worklog.find_or_create_folder("fail_folder", "parent")
 
     @patch('create_worklog.requests.post')

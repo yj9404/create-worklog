@@ -1,6 +1,22 @@
 import os
+import sys
 import requests
 from datetime import datetime, timedelta
+
+REQUIRED_ENV_VARS = [
+    "BASE_URL",
+    "BASE_URL_V1",
+    "SPACE_ID",
+    "TEMPLATE_ID",
+    "ROOT_FOLDER_ID",
+    "ATLASSIAN_USER",
+    "ATLASSIAN_API_TOKEN"
+]
+
+missing_vars = [var for var in REQUIRED_ENV_VARS if var not in os.environ]
+if missing_vars:
+    print(f"Error: Missing required environment variables: {', '.join(missing_vars)}", file=sys.stderr)
+    sys.exit(1)
 
 BASE_URL = os.environ["BASE_URL"]
 BASE_URL_V1 = os.environ["BASE_URL_V1"]

@@ -13,6 +13,19 @@ os.environ["ATLASSIAN_USER"] = "test@example.com"
 os.environ["ATLASSIAN_API_TOKEN"] = "test_token"
 
 # requests가 import되기 전에 환경 변수가 설정되었는지 확인하기 위해 여기서 import합니다.
+import sys
+from unittest.mock import MagicMock
+
+# Mock requests.exceptions.HTTPError
+mock_requests = MagicMock()
+class MockHTTPError(Exception):
+    pass
+mock_requests.exceptions.HTTPError = MockHTTPError
+
+sys.modules['requests'] = mock_requests
+sys.modules['requests.exceptions'] = MagicMock()
+sys.modules['requests.exceptions'].HTTPError = MockHTTPError
+
 import create_worklog
 import requests
 

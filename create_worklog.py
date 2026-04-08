@@ -19,7 +19,6 @@ def get_folder_id_by_name(name, parent_id):
     data = r.json()
 
     children = data.get("directChildren", {}).get("results", [])
-    print(f"[DEBUG] Folders under parent={parent_id}: {[c.get('title') for c in children]}")
 
     for f in children:
         if f.get("title") == name:

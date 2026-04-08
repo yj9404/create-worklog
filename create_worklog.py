@@ -8,6 +8,7 @@ SPACE_ID = os.environ["SPACE_ID"]
 TEMPLATE_ID = os.environ["TEMPLATE_ID"]
 ROOT_FOLDER_ID = os.environ["ROOT_FOLDER_ID"]
 AUTH = (os.environ["ATLASSIAN_USER"], os.environ["ATLASSIAN_API_TOKEN"])
+TEMPLATE_DATE_PLACEHOLDER = os.environ.get("TEMPLATE_DATE_PLACEHOLDER", "{{DATE}}")
 
 # In-memory cache for folder lookups: {parent_id: [{"id": "id", "title": "name"}, ...]}
 _FOLDER_CACHE = {}
@@ -132,8 +133,8 @@ def main(today):
         # 템플릿 본문 불러오기
         body = get_template_body()
 
-        # 날짜 치환 (기존 템플릿에 박혀있는 "2025년 8월 7일" → 새 날짜)
-        updated_body = body.replace("2025-08-07", formatted_date)
+        # 날짜 치환 (기존 템플릿에 박혀있는 "{{DATE}}" → 새 날짜)
+        updated_body = body.replace(TEMPLATE_DATE_PLACEHOLDER, formatted_date)
 
         # 페이지 생성 (목요일 날짜에 해당하는 월 폴더에 생성)
         page_id = create_page(page_title, thursday_month_folder_id, updated_body)

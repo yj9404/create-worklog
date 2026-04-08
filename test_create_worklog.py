@@ -138,7 +138,7 @@ class TestCreateWorklog(unittest.TestCase):
         )
 
     @patch('create_worklog.create_page')
-    @patch('create_worklog.get_template_body', return_value='template body with 2025-08-07')
+    @patch('create_worklog.get_template_body', return_value='template body with {{DATE}}')
     @patch('create_worklog.find_or_create_folder')
     def test_main_logic_on_tuesday_creates_page(self, mock_find_folder, mock_get_body, mock_create_page):
         # 화요일에 실행하면 목요일의 페이지가 생성되는지 테스트합니다.

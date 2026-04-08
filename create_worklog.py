@@ -9,17 +9,25 @@ TEMPLATE_ID = os.environ["TEMPLATE_ID"]
 ROOT_FOLDER_ID = os.environ["ROOT_FOLDER_ID"]
 AUTH = (os.environ["ATLASSIAN_USER"], os.environ["ATLASSIAN_API_TOKEN"])
 
+# In-memory cache for folder lookups: {parent_id: [{"id": "id", "title": "name"}, ...]}
+_FOLDER_CACHE = {}
 
 def get_folder_id_by_name(name, parent_id):
-    # parentId 하위 폴더 조회
-    url = f"{BASE_URL}/folders/{parent_id}?include-direct-children=true"
-    headers = {"Accept": "application/json"}
-    r = requests.get(url, auth=AUTH, headers=headers)
-    r.raise_for_status()
-    data = r.json()
+    # Check cache first
+    if parent_id in _FOLDER_CACHE:
+        children = _FOLDER_CACHE[parent_id]
+        print(f"[CACHE] Using cached folders for parent={parent_id}")
+    else:
+        # parentId 하위 폴더 조회
+        url = f"{BASE_URL}/folders/{parent_id}?include-direct-children=true"
+        headers = {"Accept": "application/json"}
+        r = requests.get(url, auth=AUTH, headers=headers)
+        r.raise_for_status()
+        data = r.json()
 
-    children = data.get("directChildren", {}).get("results", [])
-    print(f"[DEBUG] Folders under parent={parent_id}: {[c.get('title') for c in children]}")
+        children = data.get("directChildren", {}).get("results", [])
+        _FOLDER_CACHE[parent_id] = children
+        print(f"[DEBUG] Folders under parent={parent_id}: {[c.get('title') for c in children]}")
 
     for f in children:
         if f.get("title") == name:
@@ -42,6 +50,9 @@ def find_or_create_folder(name, parent_id):
     if r.status_code in (200, 201):
         data = r.json()
         print(f"[CREATE] Folder created: {name} (id={data['id']})")
+        # Update cache with the newly created folder
+        if parent_id in _FOLDER_CACHE:
+            _FOLDER_CACHE[parent_id].append({"id": data["id"], "title": name})
         return data["id"]
     else:
         print(f"[ERROR] Failed to create folder: {name}, status={r.status_code}, body={r.text}")

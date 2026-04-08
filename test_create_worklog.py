@@ -137,6 +137,15 @@ class TestCreateWorklog(unittest.TestCase):
             headers={"Accept": "application/json"}
         )
 
+    @patch('create_worklog.requests.get')
+    def test_get_template_body_error(self, mock_get):
+        mock_response = Mock()
+        mock_response.raise_for_status.side_effect = mock_requests.exceptions.HTTPError
+        mock_get.return_value = mock_response
+
+        with self.assertRaises(mock_requests.exceptions.HTTPError):
+            create_worklog.get_template_body()
+
     @patch('create_worklog.create_page')
     @patch('create_worklog.get_template_body', return_value='template body with 2025-08-07')
     @patch('create_worklog.find_or_create_folder')

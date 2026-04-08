@@ -79,24 +79,24 @@ def get_template_body():
     data = r.json()
     return data["body"]["storage"]["value"]
 
-def main(today):
-    print(f"===== Confluence Automation Start: {today.strftime('%Y-%m-%d (%A)')} =====")
-
-    # 메인 연도 폴더 (올해)
+def ensure_current_month_folder(today):
+    """메인 연도 및 이번 달 폴더가 존재하는지 확인하고 생성합니다."""
     year_folder_name = f"{today.year}_워크로그"
     year_folder_id = find_or_create_folder(year_folder_name, ROOT_FOLDER_ID)
 
-    # 이번 달 폴더
     month_folder_name = f"{today.year}_{today.strftime('%m')}"
     month_folder_id = find_or_create_folder(month_folder_name, year_folder_id)
+    return month_folder_id
 
-    # 1. 매년 12/28 이후 → 내년 폴더 생성
+def handle_year_end_folder_creation(today):
+    """매년 12/28 이후 → 내년 폴더를 생성합니다."""
     if today.month == 12 and today.day >= 28:
         next_year_folder_name = f"{today.year + 1}_워크로그"
         find_or_create_folder(next_year_folder_name, ROOT_FOLDER_ID)
         print(f"[TASK] Next year folder checked: {next_year_folder_name}")
 
-    # 2. 매월 28일 이후 → 다음 달 폴더 생성
+def handle_month_end_folder_creation(today):
+    """매월 28일 이후 → 다음 달 폴더를 생성합니다."""
     if today.day >= 28:
         next_month = today.month % 12 + 1
         next_year = today.year + (1 if next_month == 1 else 0)
@@ -105,7 +105,8 @@ def main(today):
         find_or_create_folder(next_month_folder_name, next_year_folder_id)
         print(f"[TASK] Next month folder checked: {next_month_folder_name}")
 
-    # 3. 매주 화, 수, 목 → 목요일 워크로그 생성
+def create_thursday_worklog(today):
+    """매주 화, 수, 목 → 목요일 워크로그를 생성합니다."""
     if today.weekday() in [1, 2, 3]:
         thursday = today + timedelta(days=(3 - today.weekday()))
         page_title = f"{thursday.strftime('%m_%d')}_워크로그"
@@ -128,6 +129,21 @@ def main(today):
         page_id = create_page(page_title, thursday_month_folder_id, updated_body)
 
         print(f"Created and updated page: {page_title} ({formatted_date}) id={page_id}")
+
+def main(today):
+    print(f"===== Confluence Automation Start: {today.strftime('%Y-%m-%d (%A)')} =====")
+
+    # 메인 연도 및 이번 달 폴더 확인
+    ensure_current_month_folder(today)
+
+    # 1. 매년 12/28 이후 → 내년 폴더 생성 확인
+    handle_year_end_folder_creation(today)
+
+    # 2. 매월 28일 이후 → 다음 달 폴더 생성 확인
+    handle_month_end_folder_creation(today)
+
+    # 3. 매주 화, 수, 목 → 목요일 워크로그 생성
+    create_thursday_worklog(today)
 
 
 if __name__ == "__main__":

@@ -109,6 +109,18 @@ class TestCreateWorklog(unittest.TestCase):
         page_id = create_worklog.create_page("existing_page", "parent", "body")
         self.assertIsNone(page_id)
 
+    @patch('create_worklog.requests.post')
+    def test_create_page_fail(self, mock_post):
+        # API returns 500 Internal Server Error
+        mock_response = Mock()
+        mock_response.status_code = 500
+        # Mock raise_for_status to raise an HTTPError
+        mock_response.raise_for_status.side_effect = requests.exceptions.HTTPError
+        mock_post.return_value = mock_response
+
+        with self.assertRaises(requests.exceptions.HTTPError):
+            create_worklog.create_page("fail_page", "parent", "body")
+
     @patch('create_worklog.requests.get')
     def test_get_template_body(self, mock_get):
         mock_response = Mock()

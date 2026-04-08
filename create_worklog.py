@@ -55,7 +55,7 @@ def find_or_create_folder(name, parent_id):
             _FOLDER_CACHE[parent_id].append({"id": data["id"], "title": name})
         return data["id"]
     else:
-        print(f"[ERROR] Failed to create folder: {name}, status={r.status_code}, body={r.text}")
+        print(f"[ERROR] Failed to create folder: {name}, status={r.status_code}")
         r.raise_for_status()
 
 def create_page(title, parent_id, body):

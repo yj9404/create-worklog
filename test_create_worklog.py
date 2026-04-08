@@ -51,7 +51,8 @@ class TestCreateWorklog(unittest.TestCase):
         mock_get.assert_called_once_with(
             "https://test.atlassian.net/wiki/rest/api/folders/parent_id?include-direct-children=true",
             auth=("test@example.com", "test_token"),
-            headers={"Accept": "application/json"}
+            headers={"Accept": "application/json"},
+            timeout=10
         )
 
     @patch('create_worklog.requests.get')
@@ -134,7 +135,8 @@ class TestCreateWorklog(unittest.TestCase):
         mock_get.assert_called_once_with(
             "https://test.atlassian.net/wiki/rest/api/v1/template/67890",
             auth=("test@example.com", "test_token"),
-            headers={"Accept": "application/json"}
+            headers={"Accept": "application/json"},
+            timeout=10
         )
 
     @patch('create_worklog.create_page')

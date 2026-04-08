@@ -1,3 +1,14 @@
+import sys
+from unittest.mock import MagicMock
+
+# Mock requests before importing create_worklog
+# Since requests is not available in the environment, we mock it.
+mock_requests = MagicMock()
+class MockHTTPError(Exception):
+    pass
+mock_requests.exceptions.HTTPError = MockHTTPError
+sys.modules["requests"] = mock_requests
+
 import unittest
 from unittest.mock import patch, Mock
 from datetime import datetime
@@ -98,7 +109,7 @@ class TestCreateWorklog(unittest.TestCase):
         # 실패한 API 응답을 모의 처리합니다.
         mock_response = Mock()
         mock_response.status_code = 500
-        mock_response.raise_for_status.side_effect = mock_requests.exceptions.HTTPError
+        mock_response.raise_for_status.side_effect = mock_requests.exceptions.HTTPError("HTTP Error")
         mock_post.return_value = mock_response
 
         with self.assertRaises(mock_requests.exceptions.HTTPError):
@@ -139,6 +150,17 @@ class TestCreateWorklog(unittest.TestCase):
             timeout=10
         )
 
+    # --- Weekday Logic Tests ---
+    # Note: create_worklog.main replaces the specific string "2025-08-07" in the template body.
+
+    @patch('create_worklog.create_page')
+    @patch('create_worklog.get_template_body', return_value='template body with 2025-08-07')
+    @patch('create_worklog.find_or_create_folder')
+    def test_main_logic_on_monday_does_not_create_page(self, mock_find_folder, mock_get_body, mock_create_page):
+        # 월요일 (0)
+        monday = datetime(2025, 6, 9)
+        create_worklog.main(monday)
+        mock_create_page.assert_not_called()
     @patch('create_worklog.requests.get')
     def test_get_template_body_error(self, mock_get):
         mock_response = Mock()
@@ -152,26 +174,90 @@ class TestCreateWorklog(unittest.TestCase):
     @patch('create_worklog.get_template_body', return_value='template body with 2025-08-07')
     @patch('create_worklog.find_or_create_folder')
     def test_main_logic_on_tuesday_creates_page(self, mock_find_folder, mock_get_body, mock_create_page):
-        # 화요일에 실행하면 목요일의 페이지가 생성되는지 테스트합니다.
-        mock_find_folder.side_effect = ['year_folder', 'month_folder', 'thursday_year_folder', 'thursday_month_folder']
+        # 화요일 (1)
+        mock_find_folder.side_effect = lambda name, parent: f"id_{name}"
         tuesday = datetime(2025, 6, 10)
         create_worklog.main(tuesday)
 
         mock_create_page.assert_called_once_with(
             '06_12_워크로그',
-            'thursday_month_folder',
+            'id_2025_06',
             'template body with 2025-06-12'
         )
 
     @patch('create_worklog.create_page')
-    @patch('create_worklog.get_template_body')
+    @patch('create_worklog.get_template_body', return_value='template body with 2025-08-07')
+    @patch('create_worklog.find_or_create_folder')
+    def test_main_logic_on_wednesday_creates_page(self, mock_find_folder, mock_get_body, mock_create_page):
+        # 수요일 (2)
+        mock_find_folder.side_effect = lambda name, parent: f"id_{name}"
+        wednesday = datetime(2025, 6, 11)
+        create_worklog.main(wednesday)
+
+        mock_create_page.assert_called_once_with(
+            '06_12_워크로그',
+            'id_2025_06',
+            'template body with 2025-06-12'
+        )
+
+    @patch('create_worklog.create_page')
+    @patch('create_worklog.get_template_body', return_value='template body with 2025-08-07')
+    @patch('create_worklog.find_or_create_folder')
+    def test_main_logic_on_thursday_creates_page(self, mock_find_folder, mock_get_body, mock_create_page):
+        # 목요일 (3)
+        mock_find_folder.side_effect = lambda name, parent: f"id_{name}"
+        thursday = datetime(2025, 6, 12)
+        create_worklog.main(thursday)
+
+        mock_create_page.assert_called_once_with(
+            '06_12_워크로그',
+            'id_2025_06',
+            'template body with 2025-06-12'
+        )
+
+    @patch('create_worklog.create_page')
+    @patch('create_worklog.get_template_body', return_value='template body with 2025-08-07')
     @patch('create_worklog.find_or_create_folder')
     def test_main_logic_on_friday_does_not_create_page(self, mock_find_folder, mock_get_body, mock_create_page):
-        # 금요일에 실행하면 페이지가 생성되지 않는지 테스트합니다.
-        mock_find_folder.side_effect = ['year_folder', 'month_folder']
+        # 금요일 (4)
         friday = datetime(2025, 6, 13)
         create_worklog.main(friday)
         mock_create_page.assert_not_called()
+
+    @patch('create_worklog.create_page')
+    @patch('create_worklog.get_template_body', return_value='template body with 2025-08-07')
+    @patch('create_worklog.find_or_create_folder')
+    def test_main_logic_on_saturday_does_not_create_page(self, mock_find_folder, mock_get_body, mock_create_page):
+        # 토요일 (5)
+        saturday = datetime(2025, 6, 14)
+        create_worklog.main(saturday)
+        mock_create_page.assert_not_called()
+
+    @patch('create_worklog.create_page')
+    @patch('create_worklog.get_template_body', return_value='template body with 2025-08-07')
+    @patch('create_worklog.find_or_create_folder')
+    def test_main_logic_on_sunday_does_not_create_page(self, mock_find_folder, mock_get_body, mock_create_page):
+        # 일요일 (6)
+        sunday = datetime(2025, 6, 15)
+        create_worklog.main(sunday)
+        mock_create_page.assert_not_called()
+
+    @patch('create_worklog.create_page')
+    @patch('create_worklog.get_template_body', return_value='template body with 2025-08-07')
+    @patch('create_worklog.find_or_create_folder')
+    def test_main_logic_month_transition(self, mock_find_folder, mock_get_body, mock_create_page):
+        # 화요일 9월 30일 -> 목요일 10월 2일
+        mock_find_folder.side_effect = lambda name, parent: f"id_{name}"
+        tue_sep_30 = datetime(2025, 9, 30)
+        create_worklog.main(tue_sep_30)
+
+        mock_create_page.assert_called_once_with(
+            '10_02_워크로그',
+            'id_2025_10',
+            'template body with 2025-10-02'
+        )
+
+    # --- Other tests ---
 
     @patch('create_worklog.create_page')
     @patch('create_worklog.get_template_body')

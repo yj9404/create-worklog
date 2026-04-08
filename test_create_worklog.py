@@ -23,9 +23,24 @@ os.environ["ROOT_FOLDER_ID"] = "111213"
 os.environ["ATLASSIAN_USER"] = "test@example.com"
 os.environ["ATLASSIAN_API_TOKEN"] = "test_token"
 
+import sys
+from unittest.mock import MagicMock
+
+# Mock requests before importing create_worklog
+mock_requests = MagicMock()
+# Add a mock HTTPError to the mock_requests
+class MockHTTPError(Exception):
+    pass
+mock_requests.exceptions.HTTPError = MockHTTPError
+sys.modules["requests"] = mock_requests
+
+# requests가 import되기 전에 환경 변수가 설정되었는지 확인하기 위해 여기서 import합니다.
 import create_worklog
 
 class TestCreateWorklog(unittest.TestCase):
+    def setUp(self):
+        # Clear cache before each test
+        create_worklog._FOLDER_CACHE = {}
 
     @patch('create_worklog.requests.get')
     def test_get_folder_id_by_name_found(self, mock_get):
@@ -47,7 +62,8 @@ class TestCreateWorklog(unittest.TestCase):
         mock_get.assert_called_once_with(
             "https://test.atlassian.net/wiki/rest/api/folders/parent_id?include-direct-children=true",
             auth=("test@example.com", "test_token"),
-            headers={"Accept": "application/json"}
+            headers={"Accept": "application/json"},
+            timeout=10
         )
 
     @patch('create_worklog.requests.get')
@@ -130,7 +146,8 @@ class TestCreateWorklog(unittest.TestCase):
         mock_get.assert_called_once_with(
             "https://test.atlassian.net/wiki/rest/api/v1/template/67890",
             auth=("test@example.com", "test_token"),
-            headers={"Accept": "application/json"}
+            headers={"Accept": "application/json"},
+            timeout=10
         )
 
     # --- Weekday Logic Tests ---
@@ -144,6 +161,14 @@ class TestCreateWorklog(unittest.TestCase):
         monday = datetime(2025, 6, 9)
         create_worklog.main(monday)
         mock_create_page.assert_not_called()
+    @patch('create_worklog.requests.get')
+    def test_get_template_body_error(self, mock_get):
+        mock_response = Mock()
+        mock_response.raise_for_status.side_effect = mock_requests.exceptions.HTTPError
+        mock_get.return_value = mock_response
+
+        with self.assertRaises(mock_requests.exceptions.HTTPError):
+            create_worklog.get_template_body()
 
     @patch('create_worklog.create_page')
     @patch('create_worklog.get_template_body', return_value='template body with 2025-08-07')

@@ -9,17 +9,25 @@ TEMPLATE_ID = os.environ["TEMPLATE_ID"]
 ROOT_FOLDER_ID = os.environ["ROOT_FOLDER_ID"]
 AUTH = (os.environ["ATLASSIAN_USER"], os.environ["ATLASSIAN_API_TOKEN"])
 
+# In-memory cache for folder lookups: {parent_id: [{"id": "id", "title": "name"}, ...]}
+_FOLDER_CACHE = {}
 
 def get_folder_id_by_name(name, parent_id):
-    # parentId 하위 폴더 조회
-    url = f"{BASE_URL}/folders/{parent_id}?include-direct-children=true"
-    headers = {"Accept": "application/json"}
-    r = requests.get(url, auth=AUTH, headers=headers)
-    r.raise_for_status()
-    data = r.json()
+    # Check cache first
+    if parent_id in _FOLDER_CACHE:
+        children = _FOLDER_CACHE[parent_id]
+        print(f"[CACHE] Using cached folders for parent={parent_id}")
+    else:
+        # parentId 하위 폴더 조회
+        url = f"{BASE_URL}/folders/{parent_id}?include-direct-children=true"
+        headers = {"Accept": "application/json"}
+        r = requests.get(url, auth=AUTH, headers=headers, timeout=10)
+        r.raise_for_status()
+        data = r.json()
 
-    children = data.get("directChildren", {}).get("results", [])
-    print(f"[DEBUG] Folders under parent={parent_id}: {[c.get('title') for c in children]}")
+        children = data.get("directChildren", {}).get("results", [])
+        _FOLDER_CACHE[parent_id] = children
+        print(f"[DEBUG] Folders under parent={parent_id}: {[c.get('title') for c in children]}")
 
     for f in children:
         if f.get("title") == name:
@@ -38,13 +46,16 @@ def find_or_create_folder(name, parent_id):
     url = f"{BASE_URL}/folders"
     payload = {"spaceId": SPACE_ID, "title": name, "parentId": parent_id}
 
-    r = requests.post(url, auth=AUTH, json=payload)
+    r = requests.post(url, auth=AUTH, json=payload, timeout=10)
     if r.status_code in (200, 201):
         data = r.json()
         print(f"[CREATE] Folder created: {name} (id={data['id']})")
+        # Update cache with the newly created folder
+        if parent_id in _FOLDER_CACHE:
+            _FOLDER_CACHE[parent_id].append({"id": data["id"], "title": name})
         return data["id"]
     else:
-        print(f"[ERROR] Failed to create folder: {name}, status={r.status_code}, body={r.text}")
+        print(f"[ERROR] Failed to create folder: {name}, status={r.status_code}")
         r.raise_for_status()
 
 def create_page(title, parent_id, body):
@@ -62,7 +73,7 @@ def create_page(title, parent_id, body):
         "subtype": "live"
     }
 
-    r = requests.post(url, auth=AUTH, json=data)
+    r = requests.post(url, auth=AUTH, json=data, timeout=10)
     if r.status_code == 400:  # 이미 존재
         print(f"[SKIP] Page already exists: {title}")
         return None
@@ -74,7 +85,7 @@ def create_page(title, parent_id, body):
 def get_template_body():
     url = f"{BASE_URL_V1}/template/{TEMPLATE_ID}"  # v1 API
     headers = {"Accept": "application/json"}
-    r = requests.get(url, auth=AUTH, headers=headers)
+    r = requests.get(url, auth=AUTH, headers=headers, timeout=10)
     r.raise_for_status()
     data = r.json()
     return data["body"]["storage"]["value"]

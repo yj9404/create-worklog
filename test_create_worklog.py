@@ -83,6 +83,15 @@ class TestCreateWorklog(unittest.TestCase):
         folder_id = create_worklog.get_folder_id_by_name("target_folder", "parent_id")
         self.assertIsNone(folder_id)
 
+    @patch('create_worklog.requests.get')
+    def test_get_folder_id_by_name_error(self, mock_get):
+        mock_response = Mock()
+        mock_response.raise_for_status.side_effect = mock_requests.exceptions.HTTPError("HTTP Error")
+        mock_get.return_value = mock_response
+
+        with self.assertRaises(mock_requests.exceptions.HTTPError):
+            create_worklog.get_folder_id_by_name("target_folder", "parent_id")
+
     @patch('create_worklog.get_folder_id_by_name', return_value="existing_folder_id")
     def test_find_or_create_folder_exists(self, mock_get_folder):
         folder_id = create_worklog.find_or_create_folder("existing_folder", "parent")

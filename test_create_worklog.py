@@ -43,6 +43,18 @@ class TestCreateWorklog(unittest.TestCase):
         create_worklog._FOLDER_CACHE = {}
 
     @patch('create_worklog.requests.get')
+    def test_get_folder_id_by_name_cache_hit(self, mock_get):
+        # Setup the cache beforehand
+        create_worklog._FOLDER_CACHE["parent_id"] = [
+            {"title": "other_folder", "id": "1"},
+            {"title": "target_folder", "id": "123"}
+        ]
+
+        folder_id = create_worklog.get_folder_id_by_name("target_folder", "parent_id")
+        self.assertEqual(folder_id, "123")
+        mock_get.assert_not_called()
+
+    @patch('create_worklog.requests.get')
     def test_get_folder_id_by_name_found(self, mock_get):
         # 폴더를 찾았을 때의 API 응답을 모의 처리합니다.
         mock_response = Mock()

@@ -1,6 +1,9 @@
 import os
 import requests
 from datetime import datetime, timedelta
+from dotenv import load_dotenv
+
+load_dotenv()
 
 BASE_URL = os.environ["BASE_URL"]
 BASE_URL_V1 = os.environ["BASE_URL_V1"]

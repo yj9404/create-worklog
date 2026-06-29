@@ -28,14 +28,14 @@ def get_folder_id_by_name(name, parent_id):
         r.raise_for_status()
         data = r.json()
 
-        children = data.get("directChildren", {}).get("results", [])
+        children_list = data.get("directChildren", {}).get("results", [])
+        children = {c.get("title"): c.get("id") for c in children_list if c.get("title")}
         _FOLDER_CACHE[parent_id] = children
-        print(f"[DEBUG] Folders under parent={parent_id}: {[c.get('title') for c in children]}")
+        print(f"[DEBUG] Folders under parent={parent_id} retrieved")
 
-    for f in children:
-        if f.get("title") == name:
-            print(f"[FOUND] Folder exists: {name} (id={f['id']})")
-            return f["id"]
+    if name in children:
+        print(f"[FOUND] Folder exists: (id={children[name]})")
+        return children[name]
 
     return None
 
@@ -52,10 +52,10 @@ def find_or_create_folder(name, parent_id):
     r = requests.post(url, auth=AUTH, json=payload, timeout=10)
     if r.status_code in (200, 201):
         data = r.json()
-        print(f"[CREATE] Folder created: {name} (id={data['id']})")
+        print(f"[CREATE] Folder created: (id={data['id']})")
         # Update cache with the newly created folder
         if parent_id in _FOLDER_CACHE:
-            _FOLDER_CACHE[parent_id].append({"id": data["id"], "title": name})
+            _FOLDER_CACHE[parent_id][name] = data["id"]
         return data["id"]
     else:
         print(f"[ERROR] Failed to create folder: {name}, status={r.status_code}")

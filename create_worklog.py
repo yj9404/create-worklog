@@ -15,6 +15,8 @@ AUTH = (os.environ["ATLASSIAN_USER"], os.environ["ATLASSIAN_API_TOKEN"])
 # In-memory cache for folder lookups: {parent_id: [{"id": "id", "title": "name"}, ...]}
 _FOLDER_CACHE = {}
 
+session = requests.Session()
+
 def get_folder_id_by_name(name, parent_id):
     # Check cache first
     if parent_id in _FOLDER_CACHE:
@@ -24,7 +26,7 @@ def get_folder_id_by_name(name, parent_id):
         # parentId 하위 폴더 조회
         url = f"{BASE_URL}/folders/{parent_id}?include-direct-children=true"
         headers = {"Accept": "application/json"}
-        r = requests.get(url, auth=AUTH, headers=headers, timeout=10)
+        r = session.get(url, auth=AUTH, headers=headers, timeout=10)
         r.raise_for_status()
         data = r.json()
 
@@ -49,7 +51,7 @@ def find_or_create_folder(name, parent_id):
     url = f"{BASE_URL}/folders"
     payload = {"spaceId": SPACE_ID, "title": name, "parentId": parent_id}
 
-    r = requests.post(url, auth=AUTH, json=payload, timeout=10)
+    r = session.post(url, auth=AUTH, json=payload, timeout=10)
     if r.status_code in (200, 201):
         data = r.json()
         print(f"[CREATE] Folder created: {name} (id={data['id']})")
@@ -76,7 +78,7 @@ def create_page(title, parent_id, body):
         "subtype": "live"
     }
 
-    r = requests.post(url, auth=AUTH, json=data, timeout=10)
+    r = session.post(url, auth=AUTH, json=data, timeout=10)
     if r.status_code == 400:  # 이미 존재
         print(f"[SKIP] Page already exists: {title}")
         return None
@@ -88,7 +90,7 @@ def create_page(title, parent_id, body):
 def get_template_body():
     url = f"{BASE_URL_V1}/template/{TEMPLATE_ID}"  # v1 API
     headers = {"Accept": "application/json"}
-    r = requests.get(url, auth=AUTH, headers=headers, timeout=10)
+    r = session.get(url, auth=AUTH, headers=headers, timeout=10)
     r.raise_for_status()
     data = r.json()
     return data["body"]["storage"]["value"]

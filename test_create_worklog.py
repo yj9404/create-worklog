@@ -42,7 +42,7 @@ class TestCreateWorklog(unittest.TestCase):
         # Clear cache before each test
         create_worklog._FOLDER_CACHE = {}
 
-    @patch('create_worklog.requests.get')
+    @patch('create_worklog.session.get')
     def test_get_folder_id_by_name_found(self, mock_get):
         # 폴더를 찾았을 때의 API 응답을 모의 처리합니다.
         mock_response = Mock()
@@ -66,7 +66,7 @@ class TestCreateWorklog(unittest.TestCase):
             timeout=10
         )
 
-    @patch('create_worklog.requests.get')
+    @patch('create_worklog.session.get')
     def test_get_folder_id_by_name_not_found(self, mock_get):
         # 폴더를 찾지 못했을 때의 API 응답을 모의 처리합니다.
         mock_response = Mock()
@@ -90,7 +90,7 @@ class TestCreateWorklog(unittest.TestCase):
         mock_get_folder.assert_called_once_with("existing_folder", "parent")
 
     @patch('create_worklog.get_folder_id_by_name', return_value=None)
-    @patch('create_worklog.requests.post')
+    @patch('create_worklog.session.post')
     def test_find_or_create_folder_create_success(self, mock_post, mock_get_folder):
         # 폴더 생성 성공 시의 API 응답을 모의 처리합니다.
         mock_response = Mock()
@@ -104,7 +104,7 @@ class TestCreateWorklog(unittest.TestCase):
         mock_post.assert_called_once()
 
     @patch('create_worklog.get_folder_id_by_name', return_value=None)
-    @patch('create_worklog.requests.post')
+    @patch('create_worklog.session.post')
     def test_find_or_create_folder_create_fail(self, mock_post, mock_get_folder):
         # 실패한 API 응답을 모의 처리합니다.
         mock_response = Mock()
@@ -115,7 +115,7 @@ class TestCreateWorklog(unittest.TestCase):
         with self.assertRaises(mock_requests.exceptions.HTTPError):
             create_worklog.find_or_create_folder("fail_folder", "parent")
 
-    @patch('create_worklog.requests.post')
+    @patch('create_worklog.session.post')
     def test_create_page_success(self, mock_post):
         mock_response = Mock()
         mock_response.status_code = 200
@@ -125,7 +125,7 @@ class TestCreateWorklog(unittest.TestCase):
         page_id = create_worklog.create_page("test_page", "parent", "body")
         self.assertEqual(page_id, "new_page_id")
 
-    @patch('create_worklog.requests.post')
+    @patch('create_worklog.session.post')
     def test_create_page_already_exists(self, mock_post):
         mock_response = Mock()
         mock_response.status_code = 400
@@ -134,7 +134,7 @@ class TestCreateWorklog(unittest.TestCase):
         page_id = create_worklog.create_page("existing_page", "parent", "body")
         self.assertIsNone(page_id)
 
-    @patch('create_worklog.requests.get')
+    @patch('create_worklog.session.get')
     def test_get_template_body(self, mock_get):
         mock_response = Mock()
         mock_response.json.return_value = {"body": {"storage": {"value": "template_body_content"}}}
@@ -161,7 +161,7 @@ class TestCreateWorklog(unittest.TestCase):
         monday = datetime(2025, 6, 9)
         create_worklog.main(monday)
         mock_create_page.assert_not_called()
-    @patch('create_worklog.requests.get')
+    @patch('create_worklog.session.get')
     def test_get_template_body_error(self, mock_get):
         mock_response = Mock()
         mock_response.raise_for_status.side_effect = mock_requests.exceptions.HTTPError

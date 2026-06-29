@@ -83,6 +83,29 @@ class TestCreateWorklog(unittest.TestCase):
         folder_id = create_worklog.get_folder_id_by_name("target_folder", "parent_id")
         self.assertIsNone(folder_id)
 
+    @patch('create_worklog.requests.get')
+    def test_get_folder_id_by_name_cache_hit_found(self, mock_get):
+        # Populate cache
+        create_worklog._FOLDER_CACHE["parent_id"] = [
+            {"title": "other_folder", "id": "1"},
+            {"title": "target_folder", "id": "123"}
+        ]
+
+        folder_id = create_worklog.get_folder_id_by_name("target_folder", "parent_id")
+        self.assertEqual(folder_id, "123")
+        mock_get.assert_not_called()
+
+    @patch('create_worklog.requests.get')
+    def test_get_folder_id_by_name_cache_hit_not_found(self, mock_get):
+        # Populate cache
+        create_worklog._FOLDER_CACHE["parent_id"] = [
+            {"title": "other_folder", "id": "1"}
+        ]
+
+        folder_id = create_worklog.get_folder_id_by_name("target_folder", "parent_id")
+        self.assertIsNone(folder_id)
+        mock_get.assert_not_called()
+
     @patch('create_worklog.get_folder_id_by_name', return_value="existing_folder_id")
     def test_find_or_create_folder_exists(self, mock_get_folder):
         folder_id = create_worklog.find_or_create_folder("existing_folder", "parent")

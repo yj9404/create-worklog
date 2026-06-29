@@ -8,6 +8,7 @@ class MockHTTPError(Exception):
     pass
 mock_requests.exceptions.HTTPError = MockHTTPError
 sys.modules["requests"] = mock_requests
+import requests
 
 import unittest
 from unittest.mock import patch, Mock
@@ -109,10 +110,10 @@ class TestCreateWorklog(unittest.TestCase):
         # 실패한 API 응답을 모의 처리합니다.
         mock_response = Mock()
         mock_response.status_code = 500
-        mock_response.raise_for_status.side_effect = mock_requests.exceptions.HTTPError("HTTP Error")
+        mock_response.raise_for_status.side_effect = requests.exceptions.HTTPError("HTTP Error")
         mock_post.return_value = mock_response
 
-        with self.assertRaises(mock_requests.exceptions.HTTPError):
+        with self.assertRaises(requests.exceptions.HTTPError):
             create_worklog.find_or_create_folder("fail_folder", "parent")
 
     @patch('create_worklog.requests.post')
@@ -133,6 +134,16 @@ class TestCreateWorklog(unittest.TestCase):
 
         page_id = create_worklog.create_page("existing_page", "parent", "body")
         self.assertIsNone(page_id)
+
+    @patch('create_worklog.requests.post')
+    def test_create_page_error(self, mock_post):
+        mock_response = Mock()
+        mock_response.status_code = 500
+        mock_response.raise_for_status.side_effect = requests.exceptions.HTTPError("HTTP Error")
+        mock_post.return_value = mock_response
+
+        with self.assertRaises(requests.exceptions.HTTPError):
+            create_worklog.create_page("error_page", "parent", "body")
 
     @patch('create_worklog.requests.get')
     def test_get_template_body(self, mock_get):
@@ -164,10 +175,10 @@ class TestCreateWorklog(unittest.TestCase):
     @patch('create_worklog.requests.get')
     def test_get_template_body_error(self, mock_get):
         mock_response = Mock()
-        mock_response.raise_for_status.side_effect = mock_requests.exceptions.HTTPError
+        mock_response.raise_for_status.side_effect = requests.exceptions.HTTPError
         mock_get.return_value = mock_response
 
-        with self.assertRaises(mock_requests.exceptions.HTTPError):
+        with self.assertRaises(requests.exceptions.HTTPError):
             create_worklog.get_template_body()
 
     @patch('create_worklog.create_page')

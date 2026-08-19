@@ -23,17 +23,8 @@ os.environ["ROOT_FOLDER_ID"] = "111213"
 os.environ["ATLASSIAN_USER"] = "test@example.com"
 os.environ["ATLASSIAN_API_TOKEN"] = "test_token"
 
-import sys
-from unittest.mock import MagicMock
-
-# Mock requests before importing create_worklog
-mock_requests = MagicMock()
-# Add a mock HTTPError to the mock_requests
-class MockHTTPError(Exception):
-    pass
-mock_requests.exceptions.HTTPError = MockHTTPError
-sys.modules["requests"] = mock_requests
-
+# Import requests after mocking it
+import requests
 # requests가 import되기 전에 환경 변수가 설정되었는지 확인하기 위해 여기서 import합니다.
 import create_worklog
 
@@ -106,6 +97,16 @@ class TestCreateWorklog(unittest.TestCase):
         self.assertIsNone(folder_id)
         mock_get.assert_not_called()
 
+    @patch('create_worklog.requests.get')
+    def test_get_folder_id_by_name_api_error(self, mock_get):
+        # API 오류 응답을 모의 처리합니다.
+        mock_response = Mock()
+        mock_response.raise_for_status.side_effect = requests.exceptions.HTTPError("HTTP Error")
+        mock_get.return_value = mock_response
+
+        with self.assertRaises(requests.exceptions.HTTPError):
+            create_worklog.get_folder_id_by_name("target_folder", "parent_id")
+
     @patch('create_worklog.get_folder_id_by_name', return_value="existing_folder_id")
     def test_find_or_create_folder_exists(self, mock_get_folder):
         folder_id = create_worklog.find_or_create_folder("existing_folder", "parent")
@@ -151,10 +152,10 @@ class TestCreateWorklog(unittest.TestCase):
         # 실패한 API 응답을 모의 처리합니다.
         mock_response = Mock()
         mock_response.status_code = 500
-        mock_response.raise_for_status.side_effect = mock_requests.exceptions.HTTPError("HTTP Error")
+        mock_response.raise_for_status.side_effect = requests.exceptions.HTTPError("HTTP Error")
         mock_post.return_value = mock_response
 
-        with self.assertRaises(mock_requests.exceptions.HTTPError):
+        with self.assertRaises(requests.exceptions.HTTPError):
             create_worklog.find_or_create_folder("fail_folder", "parent")
 
     @patch('create_worklog.requests.post')
@@ -206,10 +207,10 @@ class TestCreateWorklog(unittest.TestCase):
     @patch('create_worklog.requests.get')
     def test_get_template_body_error(self, mock_get):
         mock_response = Mock()
-        mock_response.raise_for_status.side_effect = mock_requests.exceptions.HTTPError
+        mock_response.raise_for_status.side_effect = requests.exceptions.HTTPError
         mock_get.return_value = mock_response
 
-        with self.assertRaises(mock_requests.exceptions.HTTPError):
+        with self.assertRaises(requests.exceptions.HTTPError):
             create_worklog.get_template_body()
 
     @patch('create_worklog.create_page')

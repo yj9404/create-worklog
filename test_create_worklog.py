@@ -128,6 +128,25 @@ class TestCreateWorklog(unittest.TestCase):
 
     @patch('create_worklog.get_folder_id_by_name', return_value=None)
     @patch('create_worklog.requests.post')
+    def test_find_or_create_folder_cache_update(self, mock_post, mock_get_folder):
+        create_worklog._FOLDER_CACHE["parent_with_cache"] = [{"id": "old_id", "title": "old_folder"}]
+
+        mock_response = Mock()
+        mock_response.status_code = 201
+        mock_response.json.return_value = {"id": "new_folder_id"}
+        mock_post.return_value = mock_response
+
+        folder_id = create_worklog.find_or_create_folder("new_folder", "parent_with_cache")
+        self.assertEqual(folder_id, "new_folder_id")
+
+        expected_cache = [
+            {"id": "old_id", "title": "old_folder"},
+            {"id": "new_folder_id", "title": "new_folder"}
+        ]
+        self.assertEqual(create_worklog._FOLDER_CACHE["parent_with_cache"], expected_cache)
+
+    @patch('create_worklog.get_folder_id_by_name', return_value=None)
+    @patch('create_worklog.requests.post')
     def test_find_or_create_folder_create_fail(self, mock_post, mock_get_folder):
         # 실패한 API 응답을 모의 처리합니다.
         mock_response = Mock()

@@ -104,7 +104,7 @@ def main(today):
 
     # 이번 달 폴더
     month_folder_name = f"{today.year}_{today.strftime('%m')}"
-    month_folder_id = find_or_create_folder(month_folder_name, year_folder_id)
+    find_or_create_folder(month_folder_name, year_folder_id)
 
     # 1. 매년 12/28 이후 → 내년 폴더 생성
     if today.month == 12 and today.day >= 28:

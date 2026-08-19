@@ -75,6 +75,29 @@ class TestCreateWorklog(unittest.TestCase):
         self.assertIsNone(folder_id)
 
     @patch('create_worklog.requests.get')
+    def test_get_folder_id_by_name_cache_hit_found(self, mock_get):
+        # Populate cache
+        create_worklog._FOLDER_CACHE["parent_id"] = [
+            {"title": "other_folder", "id": "1"},
+            {"title": "target_folder", "id": "123"}
+        ]
+
+        folder_id = create_worklog.get_folder_id_by_name("target_folder", "parent_id")
+        self.assertEqual(folder_id, "123")
+        mock_get.assert_not_called()
+
+    @patch('create_worklog.requests.get')
+    def test_get_folder_id_by_name_cache_hit_not_found(self, mock_get):
+        # Populate cache
+        create_worklog._FOLDER_CACHE["parent_id"] = [
+            {"title": "other_folder", "id": "1"}
+        ]
+
+        folder_id = create_worklog.get_folder_id_by_name("target_folder", "parent_id")
+        self.assertIsNone(folder_id)
+        mock_get.assert_not_called()
+
+    @patch('create_worklog.requests.get')
     def test_get_folder_id_by_name_api_error(self, mock_get):
         # API 오류 응답을 모의 처리합니다.
         mock_response = Mock()
@@ -103,6 +126,25 @@ class TestCreateWorklog(unittest.TestCase):
         self.assertEqual(folder_id, "new_folder_id")
         mock_get_folder.assert_called_once_with("new_folder", "parent")
         mock_post.assert_called_once()
+
+    @patch('create_worklog.get_folder_id_by_name', return_value=None)
+    @patch('create_worklog.requests.post')
+    def test_find_or_create_folder_cache_update(self, mock_post, mock_get_folder):
+        create_worklog._FOLDER_CACHE["parent_with_cache"] = [{"id": "old_id", "title": "old_folder"}]
+
+        mock_response = Mock()
+        mock_response.status_code = 201
+        mock_response.json.return_value = {"id": "new_folder_id"}
+        mock_post.return_value = mock_response
+
+        folder_id = create_worklog.find_or_create_folder("new_folder", "parent_with_cache")
+        self.assertEqual(folder_id, "new_folder_id")
+
+        expected_cache = [
+            {"id": "old_id", "title": "old_folder"},
+            {"id": "new_folder_id", "title": "new_folder"}
+        ]
+        self.assertEqual(create_worklog._FOLDER_CACHE["parent_with_cache"], expected_cache)
 
     @patch('create_worklog.get_folder_id_by_name', return_value=None)
     @patch('create_worklog.requests.post')

@@ -8,6 +8,7 @@ class MockHTTPError(Exception):
     pass
 mock_requests.exceptions.HTTPError = MockHTTPError
 sys.modules["requests"] = mock_requests
+import requests
 
 import unittest
 from unittest.mock import patch, Mock
@@ -176,6 +177,16 @@ class TestCreateWorklog(unittest.TestCase):
 
         page_id = create_worklog.create_page("existing_page", "parent", "body")
         self.assertIsNone(page_id)
+
+    @patch('create_worklog.requests.post')
+    def test_create_page_error(self, mock_post):
+        mock_response = Mock()
+        mock_response.status_code = 500
+        mock_response.raise_for_status.side_effect = requests.exceptions.HTTPError("HTTP Error")
+        mock_post.return_value = mock_response
+
+        with self.assertRaises(requests.exceptions.HTTPError):
+            create_worklog.create_page("error_page", "parent", "body")
 
     @patch('create_worklog.requests.get')
     def test_get_template_body(self, mock_get):
